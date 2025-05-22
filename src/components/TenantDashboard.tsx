@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
-import { Calendar, Phone, Mail, DollarSign, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Calendar, Phone, Mail, DollarSign, CheckCircle, AlertCircle, XCircle, Send } from 'lucide-react';
 import { Tenant } from '@/pages/Index';
+import { useToast } from "@/hooks/use-toast";
+import { Button } from './ui/button';
 
 interface TenantDashboardProps {
   tenants: Tenant[];
@@ -10,6 +12,8 @@ interface TenantDashboardProps {
 
 const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStatus }) => {
   const [filter, setFilter] = useState<'all' | 'paid' | 'due' | 'late'>('all');
+  const [sendingReminders, setSendingReminders] = useState<Record<string, boolean>>({});
+  const { toast } = useToast();
 
   const filteredTenants = tenants.filter(tenant => 
     filter === 'all' || tenant.status === filter
@@ -41,6 +45,32 @@ const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStat
     paid: tenants.filter(t => t.status === 'paid').length,
     due: tenants.filter(t => t.status === 'due').length,
     late: tenants.filter(t => t.status === 'late').length,
+  };
+
+  const handleSendReminder = async (tenant: Tenant) => {
+    setSendingReminders(prev => ({ ...prev, [tenant.id]: true }));
+    
+    try {
+      // In a real application, this would call an API to send the reminder
+      // For now, we'll simulate a network request with a timeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Reminder sent",
+        description: `Successfully sent a reminder to ${tenant.name}`,
+      });
+      
+      console.log(`Reminder sent to ${tenant.name} (${tenant.email})`);
+    } catch (error) {
+      toast({
+        title: "Failed to send reminder",
+        description: `Could not send reminder to ${tenant.name}`,
+        variant: "destructive",
+      });
+      console.error("Failed to send reminder:", error);
+    } finally {
+      setSendingReminders(prev => ({ ...prev, [tenant.id]: false }));
+    }
   };
 
   return (
@@ -167,9 +197,20 @@ const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStat
                     </button>
                   )}
                   
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
-                    Send Reminder
-                  </button>
+                  <Button
+                    onClick={() => handleSendReminder(tenant)}
+                    disabled={sendingReminders[tenant.id]}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    variant="default"
+                  >
+                    {sendingReminders[tenant.id] ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <Send size={16} /> Send Reminder
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
