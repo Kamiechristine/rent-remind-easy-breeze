@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Calendar, Phone, Mail, DollarSign, CheckCircle, AlertCircle, XCircle, Send } from 'lucide-react';
+import { Calendar, Phone, Mail, DollarSign, CheckCircle, AlertCircle, XCircle, Send, BellRing } from 'lucide-react';
 import { Tenant } from '@/pages/Index';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from './ui/button';
@@ -13,6 +12,7 @@ interface TenantDashboardProps {
 const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStatus }) => {
   const [filter, setFilter] = useState<'all' | 'paid' | 'due' | 'late'>('all');
   const [sendingReminders, setSendingReminders] = useState<Record<string, boolean>>({});
+  const [sendingNotifications, setSendingNotifications] = useState<boolean>(false);
   const { toast } = useToast();
 
   const filteredTenants = tenants.filter(tenant => 
@@ -73,6 +73,42 @@ const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStat
     }
   };
 
+  const handleSendAllNotifications = async () => {
+    const tenantsToBulkNotify = filteredTenants.filter(tenant => tenant.status !== 'paid');
+    
+    if (tenantsToBulkNotify.length === 0) {
+      toast({
+        title: "No tenants to notify",
+        description: "All tenants in the current filter have paid their rent.",
+      });
+      return;
+    }
+
+    setSendingNotifications(true);
+    
+    try {
+      // In a real application, this would call an API to send bulk notifications
+      // For now, we'll simulate a network request with a timeout
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast({
+        title: "Notifications sent",
+        description: `Successfully notified ${tenantsToBulkNotify.length} tenants about their rent status`,
+      });
+      
+      console.log(`Bulk notifications sent to ${tenantsToBulkNotify.length} tenants`);
+    } catch (error) {
+      toast({
+        title: "Failed to send notifications",
+        description: "Could not send bulk notifications to tenants",
+        variant: "destructive",
+      });
+      console.error("Failed to send notifications:", error);
+    } finally {
+      setSendingNotifications(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -126,21 +162,38 @@ const TenantDashboard: React.FC<TenantDashboardProps> = ({ tenants, onUpdateStat
         </div>
       </div>
 
-      {/* Filter Buttons */}
-      <div className="flex space-x-2">
-        {(['all', 'paid', 'due', 'late'] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${
-              filter === status
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-            }`}
-          >
-            {status}
-          </button>
-        ))}
+      {/* Filter Buttons and Notification Button */}
+      <div className="flex flex-wrap gap-2 justify-between items-center">
+        <div className="flex flex-wrap gap-2">
+          {(['all', 'paid', 'due', 'late'] as const).map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${
+                filter === status
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+        
+        <Button 
+          onClick={handleSendAllNotifications}
+          disabled={sendingNotifications}
+          className="bg-amber-600 hover:bg-amber-700 text-white"
+          variant="default"
+        >
+          {sendingNotifications ? (
+            "Sending notifications..."
+          ) : (
+            <>
+              <BellRing size={16} /> Notify All {filter !== 'all' ? filter : 'Unpaid'} Tenants
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Tenant Cards */}
